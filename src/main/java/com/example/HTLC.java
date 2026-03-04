@@ -81,20 +81,9 @@ public class HTLC {
      */
     private final long timeLockSec;
 
-    // ── Mutable state ────────────────────────────────────────────────────────
 
     /** Current state of this contract. Starts as PENDING. */
     private State state;
-
-    /**
-     * The secret preimage S, revealed only after redemption.
-     * null while PENDING, populated on successful redeem().
-     * Once set, anyone watching the blockchain can read it and use it
-     * to redeem their own contract downstream.
-     */
-    private String revealedSecret;
-
-    // ── Constructor ──────────────────────────────────────────────────────────
 
     /**
      * Creates a new HTLC contract and "locks" the funds.
@@ -119,7 +108,6 @@ public class HTLC {
         this.timeLockSec   = timeLockSec;
         this.createdAt     = Instant.now().getEpochSecond();
         this.state         = State.PENDING;
-        this.revealedSecret = null;
     }
 
     // ── Core operations ──────────────────────────────────────────────────────
@@ -160,7 +148,6 @@ public class HTLC {
 
         // ── All checks passed: transfer funds ────────────────────────────
         state          = State.REDEEMED;
-        revealedSecret = secret;   // now visible to all blockchain observers
 
         Logger.success(name + ": REDEEMED by " + caller
                 + "  |  " + amount + " " + currency + " → " + recipientName
@@ -215,17 +202,17 @@ public class HTLC {
         return Math.max(0, remaining);
     }
 
-    public String  getName() {
+    public String getName() {
         return name;
     }
 
-    /**
-     * Returns the secret preimage S if this contract has been redeemed,
-     * or null if still PENDING / REFUNDED.
-     * In a real blockchain this is simply reading the transaction data
-     * from the chain — anyone can observe it.
-     */
-    public String getRevealedSecret()   { return revealedSecret; }
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public String getRecipientName() {
+        return recipientName;
+    }
 
     @Override
     public String toString() {
