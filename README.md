@@ -15,36 +15,7 @@ based on the Tier Nolan (2013) protocol.
 | Bob   | BTC    | ALT    |
 | Carol | CAD    | BTC    |
 
-## Project Structure
-
-```
-src/atomicswap/
-  CryptoUtils.java       — SHA-256 hashing, secure secret generation
-  HTLC.java              — Hash Time-Locked Contract (core primitive)
-  Party.java             — Swap participant with wallet
-  SwapResult.java        — Immutable result record
-  AtomicSwap3Party.java  — Full 7-step protocol orchestrator
-  Main.java              — Entry point + interactive menu
-```
-
 ## How to Build & Run
-
-```bash
-# Requires JDK 17+
-chmod +x build.sh
-./build.sh              # interactive menu
-./build.sh happy        # happy path (fast)
-./build.sh timeout      # timeout/refund path (~30s)
-```
-
-Or manually:
-```bash
-mkdir -p out
-javac -d out src/atomicswap/*.java
-java -cp out atomicswap.Main
-```
-
-## Protocol Steps (Happy Path)
 
 ```
 Phase 1 — Setup (all parties lock funds):
