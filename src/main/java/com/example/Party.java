@@ -5,33 +5,24 @@ import java.util.Map;
 
 /**
  * Party — Represents a participant in the atomic swap.
- *
  * Each party in the system has:
  *   - A name (Alice, Bob, Carol)
  *   - A wallet: a map of currency → balance
  *   - An optional known secret (learned either by generating it or observing the chain)
- *
- * In the 3-party scenario from the lab:
- *
+ * In the 3-party scenario
  *   Alice  — starts with ALT-coins. Wants Carol's CAD token.
  *              She is the INITIATOR: she generates the secret S and H(S).
- *
  *   Bob    — starts with BTC. Wants Alice's ALT-coins.
  *              He is the MIDDLE party: he locks BTC after verifying Alice's contract.
- *
  *   Carol  — starts with CAD tokens. Wants Bob's BTC.
  *              She is the FINAL party: she locks CAD after verifying Bob's contract.
- *
  * Swap flow (all contracts use the SAME hashLock H(S)):
- *
  *   Step 1: Alice creates Contract_AB  (ALT locked for Bob,   timelock T1 = longest)
  *   Step 2: Bob   creates Contract_BC  (BTC locked for Carol, timelock T2 < T1)
  *   Step 3: Carol creates Contract_CA  (CAD locked for Alice, timelock T3 < T2)
- *
  *   Step 4: Alice redeems Contract_CA  → reveals S on-chain, receives CAD
  *   Step 5: Carol reads S from chain   → redeems Contract_BC, receives BTC
  *   Step 6: Bob   reads S from chain   → redeems Contract_AB, receives ALT
- *
  * Why descending timelocks?
  *   Alice MUST redeem before T3 expires.
  *   After Alice reveals S, Carol has time (T2 - T3) to use S before T2 expires.
@@ -40,18 +31,14 @@ import java.util.Map;
  */
 public class Party {
 
-    // ── Identity ─────────────────────────────────────────────────────────────
 
     /** Human-readable name: "Alice", "Bob", or "Carol". */
     private final String name;
-
-    // ── Wallet ────────────────────────────────────────────────────────────────
 
     /**
      * Simulated wallet balances.
      * Key   = currency name (e.g. "ALT", "BTC", "CAD")
      * Value = current balance
-     *
      * In a real system this would be derived from unspent transaction outputs
      * (UTXOs) on the actual blockchain.
      */
@@ -61,7 +48,6 @@ public class Party {
 
     /**
      * The secret preimage S known to this party.
-     *
      * - Alice sets this when she GENERATES the secret.
      * - Bob and Carol set this when they OBSERVE it being revealed on-chain
      *   (by reading the revealed secret from a redeemed contract).
@@ -145,7 +131,6 @@ public class Party {
 
     /**
      * Record that this party now knows the secret S.
-     *
      * Called when:
      *   - Alice generates S herself (she sets it as her own secret)
      *   - Bob/Carol observe S being revealed on-chain after Alice redeems
@@ -157,20 +142,10 @@ public class Party {
         Logger.info(name + " now knows secret S = " + secret.substring(0, 8) + "...");
     }
 
-    /**
-     * Returns whether this party currently knows the secret.
-     */
-    public boolean knowsSecret() {
-        return knownSecret != null;
-    }
-
-    // ── Getters ───────────────────────────────────────────────────────────────
 
     public String getName()        { return name; }
     public String getKnownSecret() { return knownSecret; }
-    public Map<String, Double> getWallet() { return Map.copyOf(wallet); }
 
-    // ── Display ───────────────────────────────────────────────────────────────
 
     /**
      * Print a formatted summary of this party's current balances.

@@ -7,19 +7,9 @@ import java.util.HexFormat;
 
 /**
  * CryptoUtils — Cryptographic utility methods for the atomic swap system.
- *
- * In a real blockchain implementation these operations would be performed by
- * the underlying chain's cryptographic library. Here we use Java's standard
- * java.security package to simulate them faithfully.
- *
  * Key operations:
  *   generateSecret()  — creates a cryptographically random 32-byte secret S
  *   sha256Hex()       — computes SHA-256(input) and returns the result as hex
- *
- * Why SHA-256?
- *   It is the same hash function used by Bitcoin and Ethereum in their HTLC
- *   implementations. It is a one-way function: given H(S) you cannot derive S,
- *   but given S you can trivially verify SHA-256(S) == H(S).
  */
 public final class CryptoUtils {
 
@@ -39,10 +29,8 @@ public final class CryptoUtils {
 
     /**
      * Generate a cryptographically random secret S.
-     *
      * The secret is 32 bytes (256 bits) of random data, encoded as a 64-char
      * hex string. 256 bits of entropy makes brute-force guessing infeasible.
-     *
      * In the 3-party protocol, ONLY Alice generates the secret. She keeps it
      * private until she is ready to redeem Carol's contract. At that point she
      * reveals it on-chain and the other parties can observe and use it.
@@ -57,11 +45,9 @@ public final class CryptoUtils {
 
     /**
      * Compute SHA-256 hash of a UTF-8 string and return the result as hex.
-     *
      * This is used to:
      *   (a) Compute H(S) from secret S when creating contracts (hashLock)
      *   (b) Verify a candidate secret during redemption attempt
-     *
      * SHA-256 guarantees:
      *   - Deterministic: same input always produces same output
      *   - Pre-image resistant: can't find S given H(S)
@@ -84,20 +70,7 @@ public final class CryptoUtils {
 
         } catch (NoSuchAlgorithmException e) {
             // SHA-256 is required by the Java spec — this should never happen
-            throw new RuntimeException("SHA-256 not available — JVM is non-compliant", e);
+            throw new IllegalArgumentException("SHA-256 not available — JVM is non-compliant", e);
         }
-    }
-
-    /**
-     * Convenience method: verify that SHA-256(candidate) equals the expected hash.
-     *
-     * Used internally by HTLC.redeem() to validate the presented secret.
-     *
-     * @param candidate     The secret being presented for redemption
-     * @param expectedHash  The hashLock stored in the contract
-     * @return true if the candidate is the correct preimage
-     */
-    public static boolean verifySecret(String candidate, String expectedHash) {
-        return sha256Hex(candidate).equals(expectedHash);
     }
 }

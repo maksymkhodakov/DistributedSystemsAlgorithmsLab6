@@ -4,86 +4,90 @@ import java.util.Scanner;
 
 /**
  * Main — Entry point for the 3-party Atomic Swap demonstration.
- *   1. HAPPY PATH   — all three parties behave honestly.
- *                     All contracts are redeemed in sequence.
- *                     Each party ends up with the currency they wanted.
- *   2. TIMEOUT PATH — Alice goes silent after Phase 1 and never reveals S.
- *                     Timelocks expire in order (T3 → T2 → T1).
- *                     Every party reclaims their original funds.
- *                     NOTE: This scenario takes ~30s to run due to real sleeps.
- * Usage:
- *   Compile:  javac -d out src/atomicswap/*.java
- *   Run:      java  -cp out atomicswap.Main
+ * Configures a concrete swap scenario and runs it through AtomicSwap3Party.
+ * To swap different currencies or amounts, change the SwapLeg parameters below.
+
+ * Scenario used here:
+ *   Alice  has 100 ALT-coins, wants Carol's CAD token
+ *   Bob    has 0.05 BTC,      wants Alice's ALT-coins
+ *   Carol  has 1 CAD token,   wants Bob's BTC
+
+ * Ring:  Alice(ALT→CAD)  Bob(BTC→ALT)  Carol(CAD→BTC)
+
+ * Two scenarios:
+ *   HAPPY PATH   — all parties cooperate, all contracts redeemed
+ *   TIMEOUT PATH — initiator (Alice) goes silent, all contracts refunded (~30s)
  */
 public class Main {
+    private static final SwapLeg LEG_A = new SwapLeg("Alice", "ALT", 100.0);
+    private static final SwapLeg LEG_B = new SwapLeg("Bob",   "BTC",   0.05);
+    private static final SwapLeg LEG_C = new SwapLeg("Carol", "CAD",   1.0);
+
+    // Timelocks in seconds (must satisfy T1 > T2 > T3).
+    // In production these would be hours or days, not seconds.
+    private static final long T1 = 30L;
+    private static final long T2 = 20L;
+    private static final long T3 = 10L;
+    public static final String HAPPY = "happy";
+    public static final String TIMEOUT = "timeout";
+
+    // ── Entry point ───────────────────────────────────────────────────────────
 
     public static void main(String[] args) throws InterruptedException {
 
-        // ── Banner ─────────────────────────────────────────────────────────
         System.out.println();
         System.out.println("  ╔══════════════════════════════════════════════════════╗");
-        System.out.println("  ║   ATOMIC SWAP — 3 CURRENCIES (Alice / Bob / Carol)  ║");
-        System.out.println("  ║   Hash Time-Locked Contracts (HTLC) Simulation      ║");
-        System.out.println("  ║   Based on Tier Nolan (2013) protocol               ║");
+        System.out.println("  ║   ATOMIC SWAP — 3 CURRENCIES (HTLC Protocol)        ║");
+        System.out.printf ("  ║   %s(%s→%s)  %s(%s→%s)  %s(%s→%s)%n",
+                LEG_A.partyName(), LEG_A.currency(), LEG_C.currency(),
+                LEG_B.partyName(), LEG_B.currency(), LEG_A.currency(),
+                LEG_C.partyName(), LEG_C.currency(), LEG_B.currency());
         System.out.println("  ╚══════════════════════════════════════════════════════╝");
         System.out.println();
 
-        // ── Check for command-line argument (non-interactive mode) ─────────
-        // Usage:  java -cp out atomicswap.Main happy
-        //         java -cp out atomicswap.Main timeout
         if (args.length > 0) {
             runScenario(args[0].toLowerCase());
             return;
         }
 
-        // ── Interactive menu ───────────────────────────────────────────────
         Scanner scanner = new Scanner(System.in);
         System.out.println("  Choose a scenario:");
         System.out.println("    [1] Happy Path   — all parties cooperate (fast)");
-        System.out.println("    [2] Timeout Path — Alice goes silent   (~30s wait)");
-        System.out.println("    [3] Run both scenarios back-to-back");
+        System.out.println("    [2] Timeout Path — initiator goes silent  (~" + T1 + "s wait)");
+        System.out.println("    [3] Run both back-to-back");
         System.out.print("\n  Your choice (1/2/3): ");
 
         String choice = scanner.nextLine().trim();
         System.out.println();
 
         switch (choice) {
-            case "1" -> runScenario("happy");
-            case "2" -> runScenario("timeout");
+            case "1" -> runScenario(HAPPY);
+            case "2" -> runScenario(TIMEOUT);
             case "3" -> {
-                runScenario("happy");
+                runScenario(HAPPY);
                 System.out.println("\n\n  ══ Starting Timeout Scenario ══\n");
-                runScenario("timeout");
+                runScenario(TIMEOUT);
             }
             default -> {
                 System.out.println("  Unknown choice — running Happy Path by default.");
-                runScenario("happy");
+                runScenario(HAPPY);
             }
         }
 
         scanner.close();
     }
 
-    // ── Scenario dispatcher ────────────────────────────────────────────────
-
-    /**
-     * Instantiate a fresh swap system and run the requested scenario.
-     * Each call creates a new AtomicSwap3Party instance so parties, wallets,
-     * and contracts are completely reset between runs.
-     *
-     * @param scenario  "happy" or "timeout"
-     */
     private static void runScenario(String scenario) throws InterruptedException {
-        AtomicSwap3Party swap = new AtomicSwap3Party();
+        AtomicSwap3Party swap = new AtomicSwap3Party(LEG_A, LEG_B, LEG_C, T1, T2, T3);
 
         SwapResult result = switch (scenario) {
-            case "timeout" -> swap.executeTimeoutPath();
-            default        -> swap.executeHappyPath();
+            case TIMEOUT -> swap.executeTimeoutPath();
+            case HAPPY -> swap.executeHappyPath();
+            default -> swap.executeHappyPath();
         };
 
-        // Print the final machine-readable result
         System.out.println();
-        System.out.println("  ── Result object ─────────────────────────────────────────");
+        System.out.println("  ── Result ────────────────────────────────────────────────");
         System.out.println("  " + result);
         System.out.println();
     }
